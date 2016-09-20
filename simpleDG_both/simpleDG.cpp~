@@ -1,0 +1,91 @@
+/*************************************************************************
+
+USAGE:
+compile with make after adjusting the directories for the libraries:
+MOAB, eigen, boost, and possibly IntelMKL
+
+run with e.g., 
+comand line > ./simpleDG.out ../grids/TwoCirclesLargeH0p2.msh -tau 0.1
+
+This should run and generate (append) the file "MasterLog.txt" with 
+informations, like parameters, mesh size and errors. Additionally, the 
+program writes a result file "output_nst432_h0p267.dat" which contains
+the result as simple list of vertex coordinates and data (theta, vx, vy).
+The file can be visualized with "Evaluation.nb".
+
+/*************************************************************************/
+#include <stdio.h>
+#include <iostream>
+#include <math.h>
+#include <mkl.h>
+
+
+#include "EigenSetup.h"
+#include "System.h"
+#include "Mesh.h"
+#include "Numerics.h"
+
+#include "Tools.h"
+
+char MasterLogFile[200] = "../output/MasterLog.txt";
+
+int main(int argc, const char **argv)
+{
+  string test_file_name;
+  char SysText[200], MeshText[200], NumText[200], ErrText[200], TimeStamp[200];
+  
+  startTimer(" *************************************\n program start "); 
+  stopTimer();
+  
+    
+  if (argc > 1){
+    test_file_name = argv[1];
+  } else {
+    cout << " problem reading comand line \n";
+    return 1;
+  };
+  
+  double Tau = 1.0;
+  if (exists_argument(argc, argv, "-tau"))
+    Tau = (double)get_float_argument(argc, argv, "-tau");
+    
+  int Order = 2;
+  if (exists_argument(argc, argv, "-order"))
+    Order = (int)get_float_argument(argc, argv, "-order");
+    
+  if (exists_argument(argc, argv, "-mfile"))
+    get_string_argument(argc, argv, "-mfile", MasterLogFile);
+  
+  MeshCore Mesh(test_file_name.c_str()); 
+  Mesh.InfoText( MeshText );
+  
+  System Sys( Tau );    
+  Sys.InfoText( SysText );
+  
+  Numerics Num( &Mesh, &Sys, Order );
+  Num.Assemblation();
+  Num.LinearSolve();
+  Num.InfoText( NumText );
+  
+  GetTimeStamp( TimeStamp ); 
+  
+  FILE *fp;
+  fp = fopen( MasterLogFile, "a+" );
+  fprintf( fp, " %s\n%s\n%s\n%s\n************\n", TimeStamp, SysText, MeshText, NumText );
+  fclose( fp );
+  
+  Num.PutSolution();
+  Num.OutputSimple();
+  cout << endl;
+  return(0);
+}  
+
+
+
+
+
+
+
+
+
+

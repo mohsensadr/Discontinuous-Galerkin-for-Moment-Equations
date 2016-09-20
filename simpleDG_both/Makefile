@@ -1,0 +1,86 @@
+
+CC = 
+# change this to your directory
+#HOMEDIR = /scratch/dump/mt/GitHub/MomentsDG
+#BASEDIR = /home/torrilhon
+#HOMEDIR = /home/mt858365/GitHub/MomentsDG
+#BASEDIR = /home/mt858365
+
+HOMEDIR =  $(HOME)/programs/MomentsDG
+BASEDIR = $(HOME)/programs
+
+PROBLEM = simpleDG
+
+vpath %.c $(HOMEDIR)/$(PROBLEM)
+
+ODIR = $(HOMEDIR)/obj
+
+#
+SRCS    = simpleDG.cpp \
+          SystemR13.cpp \
+          Mesh.cpp \
+          Numerics.cpp \
+          ElementAssembly.cpp \
+          Tools.cpp \
+          pardisoSolve.cpp \
+	  pardisoSolveGNUOriginal.cpp
+                   
+         
+
+          
+OBJS = $(patsubst %,$(ODIR)/%,$(SRCS:.cpp=.o))
+OBJS2 = $(patsubst %,$(ODIR)/%,$(SRCS:.c=.o))
+	  
+PROG    = $(PROBLEM).out
+
+###############################################################################
+EIGEN_INCLUDE = $(BASEDIR)/eigen-3.3-beta
+BOOST_INCLUDE = $(BASEDIR)
+MOAB_BASE_DIR = $(BASEDIR)/moab-4.6.3
+HDF5_BASE_DIR = $(BASEDIR)
+NETCDF_BASE_DIR = $(BASEDIR)
+
+MOAB_INCLUDES = $(MOAB_BASE_DIR)/include -I$(HDF5_BASE_DIR)/include 
+MOAB_LIBS_LINK = -L$(MOAB_BASE_DIR)/lib -lMOAB -L$(HDF5_BASE_DIR)/lib -lhdf5 
+MKL_INCLUDE = .
+HERE = .
+MKL_LIBS_LINK = -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -lpthread -liomp5
+
+CFLAGS   = -I$(HOMEDIR) -I$(EIGEN_INCLUDE) -I$(MOAB_INCLUDES) -I$(BOOST_INCLUDE)
+LDLIBS  =  -lm $(MOAB_LIBS_LINK)
+
+CFLAGS1   = -I$(HOMEDIR) -I$(HERE) -I$(EIGEN_INCLUDE) -I$(MOAB_INCLUDES) -I$(BOOST_INCLUDE) -DMKL_ILP64 -DEIGEN_NO_DEBUG
+LDLIBS1  =  $(MKL_LIBS_LINK)
+
+CFLAGS2   = -I$(HERE)
+LDLIBS2  =  -L/home/sadr/programs/pardiso_swiss -lpardiso500-GNU481-X86-64 -lgfortran -L/home/sadr/programs/sources/lapack-3.6.1 -llapack -lrefblas -ltmglib -fopenmp -lm
+###############################################################################
+
+
+default: $(PROG)
+#MKL: $(PROG)
+
+MKL:CFLAGS = $(CFLAGS1)
+MKL:LDLIBS += $(LDLIBS1)
+MKL: $(PROG)
+MKL: CC += icc -O2
+
+original:CFLAGS += $(CFLAGS2)
+original:LDLIBS += $(LDLIBS2)
+original: $(PROG)
+original: CC += icc -O2
+
+$(PROG):$(OBJS)
+	$(CC) -o $(PROG) $(OBJS)  $(LDLIBS)
+	date
+
+$(ODIR)/%.o: %.cpp $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS) 
+ 
+clean:	
+	clear
+	rm -rf $(OBJS) $(PROG) 
+
+all:
+	make
+
